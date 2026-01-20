@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
     // Get the request body
     const body = await request.json();
 
-    // Forward the request to the backend
+    // Forward the request to the backend using the environment variable
     const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/register`, {
       method: 'POST',
       headers: {
