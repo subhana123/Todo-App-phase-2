@@ -1,0 +1,354 @@
+openapi: 3.0.3
+info:
+  title: Backend Todo API
+  description: RESTful API for a todo application with JWT-based authentication
+  version: 1.0.0
+servers:
+  - url: https://api.backend-todo.com/v1
+    description: Production server
+  - url: https://staging-api.backend-todo.com/v1
+    description: Staging server
+  - url: http://localhost:8000/v1
+    description: Development server
+
+paths:
+  /api/{user_id}/tasks:
+    get:
+      summary: Get user's todo items
+      description: Retrieve all todo items for the specified user
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: ID of the user whose tasks to retrieve
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved todos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TodoItem'
+        '401':
+          description: Unauthorized - invalid or expired token
+        '403':
+          description: Forbidden - user cannot access these todos
+        '404':
+          description: User not found
+    post:
+      summary: Create a new todo item
+      description: Creates a new todo item for the specified user
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: ID of the user for whom to create the task
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTodoRequest'
+      responses:
+        '201':
+          description: Todo item successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoItem'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - invalid or expired token
+        '403':
+          description: Forbidden - user cannot create todos for others
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/{user_id}/tasks/{id}:
+    get:
+      summary: Get a specific todo item
+      description: Retrieve a specific todo item by ID for the specified user
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: ID of the user
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          description: ID of the todo item to retrieve
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved todo item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoItem'
+        '401':
+          description: Unauthorized - invalid or expired token
+        '403':
+          description: Forbidden - user cannot access this todo
+        '404':
+          description: Todo item not found
+    put:
+      summary: Update a todo item
+      description: Updates an existing todo item for the specified user
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: ID of the user
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          description: ID of the todo item to update
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTodoRequest'
+      responses:
+        '200':
+          description: Todo item successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoItem'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - invalid or expired token
+        '403':
+          description: Forbidden - user cannot update this todo
+        '404':
+          description: Todo item not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+    delete:
+      summary: Delete a todo item
+      description: Deletes a specific todo item by ID for the specified user
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: ID of the user
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          description: ID of the todo item to delete
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Todo item successfully deleted
+        '401':
+          description: Unauthorized - invalid or expired token
+        '403':
+          description: Forbidden - user cannot delete this todo
+        '404':
+          description: Todo item not found
+
+  /api/{user_id}/tasks/{id}/complete:
+    patch:
+      summary: Mark a todo item as complete/incomplete
+      description: Updates the completion status of a specific todo item for the specified user
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: ID of the user
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          description: ID of the todo item to update
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                completed:
+                  type: boolean
+                  description: Whether the todo item is completed
+              required:
+                - completed
+      responses:
+        '200':
+          description: Todo item completion status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoItem'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - invalid or expired token
+        '403':
+          description: Forbidden - user cannot update this todo
+        '404':
+          description: Todo item not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    TodoItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the todo item
+        title:
+          type: string
+          description: Title of the todo item
+        description:
+          type: string
+          description: Detailed description of the todo item
+        completed:
+          type: boolean
+          description: Whether the todo item is completed
+        created_at:
+          type: string
+          format: date-time
+          description: When the todo item was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the todo item was last updated
+        user_id:
+          type: integer
+          description: ID of the user who owns this todo item
+      required:
+        - id
+        - title
+        - completed
+        - created_at
+        - updated_at
+        - user_id
+    
+    CreateTodoRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Title of the todo item
+        description:
+          type: string
+          maxLength: 1000
+          description: Detailed description of the todo item (optional)
+      required:
+        - title
+    
+    UpdateTodoRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Updated title of the todo item
+        description:
+          type: string
+          maxLength: 1000
+          description: Updated description of the todo item
+        completed:
+          type: boolean
+          description: Updated completion status of the todo item
+    
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+      required:
+        - detail
+    
+    ValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+                description: Location of the validation error
+              msg:
+                type: string
+                description: Error message
+              type:
+                type: string
+                description: Type of validation error
+          description: List of validation errors
+      required:
+        - detail
